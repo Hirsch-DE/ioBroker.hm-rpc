@@ -1,6 +1,7 @@
 ![Logo](admin/homematic.png)
 # ioBroker HomeMatic RPC Adapter
 
+![Build Status](https://github.com/ioBroker/ioBroker.hm-rpc/workflows/Test%20and%20Release/badge.svg)
 ![Number of Installations](http://iobroker.live/badges/hm-rpc-installed.svg) 
 ![Number of Installations](http://iobroker.live/badges/hm-rpc-stable.svg) 
 [![NPM version](http://img.shields.io/npm/v/iobroker.hm-rpc.svg)](https://www.npmjs.com/package/iobroker.hm-rpc)
@@ -125,6 +126,9 @@ If you use HomeMatic switches or remotes their button states will only be acknow
 by ioBroker, when you have a running 'dummy' program on the CCU which depends on the related switch or remote.
 
 ## Changelog
+### 1.12.2 (2019-12-19)
+* (foxriver76) fix issue on https with less robust ccu emulations
+
 ### 1.12.1 (2019-12-06)
 * (foxriver76) fixed problem with max values of value lists
 
