@@ -11,6 +11,14 @@
 
 Connects HomeMatic Interface-Processes (BidCos-Services, Homegear and CUxD) via XML-RPC or BIN-RPC to ioBroker
 
+**This adapter uses the service [Sentry.io](https://sentry.io) to automatically report exceptions and code errors and new device schemas to me as the developer.** More details see below!
+
+## What is Sentry.io and what is reported to the servers of that company?
+Sentry.io is a service for developers to get an overview about errors from their applications. Exactly this is implemented in this adapter.
+
+When the adapter crashes or another Code error happens, this error message that also appears in the ioBroker log is submitted to Sentry. 
+When you have allowed ioBroker GmbH to collect diagnostic data then also your installation ID (this is just a unique ID **without** any additional infos about you, email, name or such) is included. This allows Sentry to group errors and show how many unique users are affected by such an error. All of these helps me to provide error free adapters that basically never crashs.
+
 ## Configuration
 
 ### HomeMatic Address
@@ -28,13 +36,13 @@ Usually:
 - 9292 for Virtual Devices (https: 49292)
 
 ### Daemon
-CCU/Homematic can support different types of devices (wired, wireless, hmip, CUxD) and for every type you should create the instance of adapter separately.
+CCU/Homematic can support different types of devices (wired, wireless, HM-IP, CUxD) and for every type you should create the instance of adapter separately.
 
 ### Protocol
 There are two protocols for communication XML-RPC and BIN-RPC. BIN-RPC is faster, but it can be, that the end device do not support it or supports it incorrect.
 In this case switch the protocol to XML.
 
-*Notice:* CUxD can only communicate with BIN-RPC and HMIP and RFD only via XML-RPC protocol.
+*Notice:* CUxD can only communicate with BIN-RPC and HM-IP and RFD only via XML-RPC protocol.
 
 ### Synchronize objects (once)
 After very first start the instance read *all* devices from CCU/Homematic.
@@ -51,7 +59,7 @@ This address cannot be "0.0.0.0", because CCU/Homematic cannot reach ioBroker un
 The port number on which the ioBroker will run. Let it 0 for automatically selection.
 
 ### Adapter Callback Address
-Sometimes the ioBroker server runs behind the router, to solve this problem, that inboud and outbound addresses are different, this option can be used.
+Sometimes the ioBroker server runs behind the router, to solve this problem, that inbound and outbound addresses are different, this option can be used.
 Here you can define the IP address of the router and the router will according to the port route the traffic to ioBroker.
 
 Used if ioBroker runs in Docker.
@@ -64,9 +72,9 @@ How many seconds will be waited before connect attempts.
 
 ### Don't delete devices on adapter start
 If this flag is not activated, the ioBroker will remove devices from configuration if device is not found at adapter start in CCU/Homematic.
-Activate this flag to do *not* delete such a devices. This is to avoid a bug on CCU side, where hmip devices are not correctly transmitted to
-ioBroker and thus will be deleted on adapter startage and be recreated when transmitted some milliseconds later. The flag is automatically checked
-when you selected hmip as daemon. However, when you delete devices while adapter is running, the adapter will be notified by CCU and will remove devices 
+Activate this flag to do *not* delete such a devices. This is to avoid a bug on CCU side, where HM-IP devices are not correctly transmitted to
+ioBroker and thus will be deleted on the adapter start and be recreated when transmitted, some milliseconds later. The flag is automatically checked
+when you selected HM-IP as daemon. However, when you delete devices while adapter is running, the adapter will be notified by CCU and will remove devices 
 which are removed on CCU.
 
 ### Use https
@@ -78,11 +86,11 @@ If 'use https' is activated you can fill in the username and password of a CCU u
 In case the CCU needs authentication on the API, you have to provide the credentials here.
 
 ## Custom commands
-It is possible to send custom commands, e. g. to read and control the master area of a device which allows the user 
+It is possible to send custom commands, e.g. to read and control the master area of a device which allows the user 
 to configure heating week programs and more.
 
 This is done by sending a message to the adapter, which contains the method as first parameter, followed by an object which 
-has to contain the ``ID`` of the target device as well as optional the ``paramType``, which specifies e. g. the MASTER area.
+has to contain the ``ID`` of the target device as well as optional the ``paramType``, which specifies e.g. the MASTER area.
 Additional parameters have to be sent in the ``params`` object.
 
 **Examples:**
@@ -121,11 +129,169 @@ sendTo('hm-rpc.1', 'getParamsetDescription', {ID: '000453D77B9EDF:1', paramType:
 });
 ```
 
+Get firmware information of a device (in this case we are logging the FW status):
+```javascript
+sendTo('hm-rpc.1', 'getDeviceDescription', {ID: '0000S8179E3DBE', paramType: 'FIRMWARE'}, res => {
+    if (!res.error) {
+        log(`FW status: ${res.result.FIRMWARE_UPDATE_STATE}`)
+    } else {
+        log(res.error)
+    }
+});
+```
+
 ## Additional information
 If you use HomeMatic switches or remotes their button states will only be acknowledged by CCU and thus 
 by ioBroker, when you have a running 'dummy' program on the CCU which depends on the related switch or remote.
 
+<!--
+	Placeholder for the next version (at the beginning of the line):
+	### __WORK IN PROGRESS__
+-->
 ## Changelog
+
+### 1.14.43 (2021-07-05)
+* (foxriver76) we now correctly map the role of smoke detectors (closes #354)
+ 
+### 1.14.42 (2021-06-27)
+* (bluefox) Added the roles to thermostat states
+* (bluefox) Added the roles for switch
+* (bluefox) Apply new roles to existing states
+
+### 1.14.41 (2021-06-05)
+* (foxriver76) we made sure, that controller does not send stopInstance message anymore
+
+### 1.14.39 (2021-06-04)
+* (foxriver76) remove the stopInstance message handling and put everything in unload
+* (bluefox) removed the white background by some icons
+
+### 1.14.38 (2021-05-11)
+* (Jens Maus) fixed the VirtualDevices min/max/default assignment (fixes #332)
+* (foxriver76) do not scale on normal '%' UNIT because its inconsistent (fixes #326)
+
+### 1.14.37 (2021-04-23)
+* (foxriver76) added tier, is now 2
+* (foxriver76) added missing images (closes #319)
+
+### 1.14.36 (2021-04-14)
+* (foxriver76) error handling improved when deleting obsolete devices/channels
+* (foxriver76) if no message id provided on `sendTo`, we do not send `undefined` params anymore (fixes #318)
+
+### 1.14.35 (2021-02-13)
+* (foxriver76) virtual devices now support ping, so use it, else it can be that instance won't register at CCU again (fixes #308)
+
+### 1.14.34 (2021-02-11)
+* (foxriver76) use async rpc calls for better error handling
+* (foxriver76) now log error events received by XML-RPC
+* (foxriver76) detect invalid params and log instead of crash
+
+### 1.14.33 (2021-01-30)
+* (foxriver76) fix problems with CuxD and HM-IP (fixes #307)
+* (foxriver76) more places where we now log message on real errors instead of error object
+
+### 1.14.32 (2021-01-29)
+* (foxriver76) revert received messages with invalid command
+* (foxriver76) log message on real errors instead of error object
+* (foxriver76) fix for crashes on decrypt
+
+### 1.14.31 (2021-01-15)
+* (foxriver76) fixed default values of HM-IP value list states
+
+### 1.14.30 (2021-01-10)
+* (foriver76) in general reject events of unregistered devices, see #298
+
+### 1.14.29 (2021-01-09)
+* (foxriver76) do not set PONG state anymore
+
+### 1.14.26 (2021-01-05)
+* (foxriver76) match clientId with namespace to find correct units
+
+### 1.14.25 (2021-01-04)
+* (foxriver76) we now use a unique id to connect for each client taking the hostname into account
+
+### 1.14.24 (2020-10-15)
+* (foxriver76) fixed error with some blinds if no adapter restart has been performed
+
+### 1.14.23 (2020-09-03)
+* (foxriver76) `value.temperature` will have unit °C no matter of delivered unit by CCU
+
+### 1.14.21 (2020-08-18)
+* (foxriver76) fixed virtual-devices objects being recreated on the instance start (#271)
+
+### 1.14.20 (2020-08-17)
+* (foxriver76) fix for % scaling of float numbers
+
+### 1.14.19 (2020-08-16)
+* (foxriver76) now logging exact command on error
+
+### 1.14.18 (2020-08-08)
+* (foxriver76) fix issue when CuxD listDevices does not deliver valid array
+* (foxriver76) fix error with % scaling in some edge cases
+
+### 1.14.15 (2020-07-21)
+* (foxriver76) fix bug on forced reinitialization run
+
+### 1.14.14 (2020-07-10)
+* (bluefox) Added roles for presence sensor
+
+### 1.14.13 (2020-07-07)
+* (foxriver76) fix edge case on E-PAPER command (IOBROKER-HM-RPC-5Z)
+* (foxriver76) Catch error on `createDevices` if CCU does not deliver valid ADDRESS (IOBROKER-HM-RPC-5X)
+
+### 1.14.12 (2020-07-03)
+* (foxriver76) Continue execution if error on retrieving a paramset from CCU
+
+### 1.14.11 (2020-06-21)
+* (bluefox) Change name of Instance according to the role (RF, Wired, HM-IP)
+
+### 1.14.10 (2020-06-14)
+* (foxriver76) removed metadata caching completely because metadata can be dynamic due to FW update or CuxD
+
+### 1.14.6 (2020-06-05)
+* (foxriver76) added some HM-IP roles for channel 0
+
+### 1.14.5 (2020-05-29)
+* (foxriver76) fixed edge case problem IOBROKER-HM-RPC-5E
+
+### 1.14.4 (2020-05-28)
+* (jens-maus) updated all device images to latest ones include HM-IP-wired ones
+
+### 1.14.3 (2020-05-18)
+* (foxriver76) catch edge case error if row.value has no native 
+
+### 1.14.2 (2020-04-24)
+* (foxriver76) catch errors on rpc client creation
+
+### 1.14.1 (2020-04-23)
+* (foxriver76) catch potential errors on createServer
+* (foxriver76) new metadata approach: we only store metadata gathered by the user,
+otherwise cached metadata can be very old and outdated, we have to monitor performance
+of this approach (more requests to CCU on first setup)
+* (foxriver76) add name and icon to meta folder
+* (foxriver76) minor code improvements
+
+### 1.13.0 (2020-04-02)
+* (foxriver76) sentry plugin support
+
+### 1.12.10 (2020-03-05)
+* (foxriver76) fixed no 'dpType for ..' error in all cases
+
+### 1.12.9 (2020-02-29)
+* (foxriver76) replace DISPLAY_DATA_STRING by DIN_66003 encodings
+
+### 1.12.8 (2020-02-26)
+* (foxriver76) improved error handling on undefined methods
+
+### 1.12.7 (2020-02-16)
+* (foxriver76) if role "value.window" is a boolean it is now correctly a "sensor.window"
+
+### 1.12.6 (2020-01-08)
+* (foxriver76) make all LEVEL dps of unit % if they are w.o. unit and have min/max
+
+### 1.12.5 (2020-01-06)
+* (foxriver76) handle some metadata more abstract
+* (foxriver76) make DIMMER_REAL.LEVEL of unit '%' even it is not by definition
+
 ### 1.12.2 (2019-12-19)
 * (foxriver76) fix issue on https with less robust ccu emulations
 
@@ -140,160 +306,27 @@ by ioBroker, when you have a running 'dummy' program on the CCU which depends on
 * (foxriver76) LOCK.OPEN is now of type button to prevent misunderstandings
 
 ### 1.11.0 (2019-11-10)
-* (foxriver76) make OFFSET and REPEATS of epaper configurable
+* (foxriver76) make OFFSET and REPEATS of e-paper configurable
 * (foxriver76) EPAPER_SIGNAL is now type string
 
 ### 1.10.3 (2019-10-27)
 * (foxriver76) fixed info channel
 
 ### 1.10.2 (2019-10-24)
-* (foxriver76) replace min max values of hmip with correct numbers 
+* (foxriver76) replace min max values of HM-IP with correct numbers 
 
 ### 1.10.0 (2019-08-12)
-* (foxriver76) new meta data handling procedure
+* (foxriver76) new metadata handling procedure
 * __js-controller >= 1.4.2 required__
 
-### 1.9.17 (2019-08-04)
-* (foxriver76) handle meta values with max 1.01 as 1
-
-### 1.9.16 (2019-07-18)
-* (foxriver76) no longer use adapter.objects if not necessary
-* (foxriver76) added meta data
-
-### 1.9.15 (2019-07-01)
-* (foxriver76) added meta and icon for HB-UNI-Sen-CAP-MOIST
-* (foxriver76) fix type of EPAPER_TONE to string
-
-### 1.9.14 (2019-06-29)
-* (foxriver76) small bug fix for HM-Dis-EP-WM55
-* (foxriver76) catch async errors on bin-rpc connection
-
-### 1.9.13 (2019-06-03)
-* (foxriver76) fixed bug where some meta values where stored in the wrong index
-
-### 1.9.12 (2019-05-27)
-* (foxriver76) fix maintenance channel of HM-Dis-EP-WM55
-* (foxriver76) meta data added
-
-### 1.9.11 (2019-04-21)
-* (foxriver76) create OPERATING_VOLTAGE with unit V
-* (foxriver76) create RSSI_* with unit dBm
-
-### 1.9.10 (2019-04-12)
-* (foxriver76) fix meta
-* (foxriver76) added new meta data
-
-### 1.9.9 (2019-03-17)
-* (foxriver76) window states are now role `value.window`
-
-### 1.9.8 (2019-02-27)
-* (foxriver76) fixes for epaper line and icon type
-* (foxriver76) metas added
-
-### 1.9.7 (2019-02-13)
-* (foxriver76) added metas
-* (foxriver76) when max is 1.005 then set max to 1
-
-### 1.9.6 (2019-02-02)
-* (foxriver76) fix meta for virtual devices
-
-### 1.9.5 (2019-01-29)
-* (foxriver76) ignore alarm states because handled by rega
-
-### 1.9.4 (2019-01-26)
-* (foxriver76) added image
-* (foxriver76) removed homematic path from ui
-
-### 1.9.3 (2019-01-25)
-* (foxriver76) added meta data
-
-### 1.9.2 (2019-01-14)
-* (foxriver76) added chinese
-* (foxriver76) minor optimizations
-
-### 1.9.1 (2019-01-08)
-* (foxriver76) fix compact mode
-
-### 1.9.0 (2019-01-07)
-* (foxriver76) adding custom commands to documentation and logging
-* (Holuba & foxriver76) fixes for virtual devices API
-* (bluefox) enabling compact mode
-* (marvingrieger) adjusting HmIP shutters to a max value of 1
-
-### 1.8.3 (2019-01-04)
-* (foxriver76) fixing dependency
-
-### 1.8.2 (2018-12-30)
-* (foxriver76) Added meta information
-* (foxriver76) Added new icons
-* (foxriver76) Minor improvements
-
-### 1.8.1 (2018-12-22)
-* (foxriver76) Added a lot of meta information
-
-### 1.8.0 (2018-11-27)
-* (foxriver76) Https checkbox added
-* (foxriver76) Https can be used instead of http
-* (foxriver76) Added possibility to authenticate on API
-* (foxriver76) de- and encryption added
-
-### 1.7.7 (2018-10-25)
-* (foxriver76) Meta information for HmIP-WTH-2 and HMIP-eTRV added (to fix issues with unit and other properties)
-* (foxriver76) General role mapping for SET_POINT_TEMPERATURE added
-
-### 1.7.6 (2018-07-29)
-* (bluefox) Configuration dialog was corrected
-
-### 1.7.5 (2018-07-20)
-* (bluefox) The roles of states were tuned
-
-### 1.7.4 (2018-06-28)
-* (BuZZy1337) Added Metas for HM-Sen-MDIR-O-3
-
-### 1.7.3 (2018-06-25)
-* (bluefox) E-Paper was corrected
-
-### 1.7.2 (2018-06-11)
-* (apollon77) changed reconnection handling
-
-### 1.7.1 (2018-06-11)
-* (angelu) changed reconnection handling
-
-### 1.7.0 (2018-06-03)
-* (bluefox) Breaking changes: following chars *,;'"`<>\s?" in ADDRESS will be replaces by "_"
-* (bluefox) Some roles were changed
-
-### 1.6.2 (2018-04-27)
-* (BuZZy1337) Added some missing metas for HM-IP Devices
-
-### 1.6.1 (2018-03-15)
-* (bluefox) The binrpc packet 2was updated
-* (bluefox) The ping for CUxD was disabled
-
-### 1.6.0 (2018-02-19)
-* (Apollon77) Upgrade binrpc library
-
-### 1.5.1 (2018-01-26)
-* (bluefox) Ready for Admin3
-
-### 1.5.0 (2017-10-27)
-* (bluefox) Add new devices in the meta information
-* (bluefox) Force stop of adapter
-
-### 1.4.15 (2017-09-27)
-* (bluefox) Added option to not delete the devices
-
-### 1.4.14 (2017-06-19)
-* (bluefox) Fix images
-
 ### Older entries
-[here](doc/OLD_CHANGELOG.md)
+[here](OLD_CHANGELOG.md)
 
 ## License
 
 The MIT License (MIT)
 
-Copyright (c) 2014-2019 bluefox <dogafox@gmail.com>
+Copyright (c) 2014-2021 bluefox <dogafox@gmail.com>
 
 Copyright (c) 2014 hobbyquaker
 
